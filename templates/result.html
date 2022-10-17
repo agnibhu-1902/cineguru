@@ -1,0 +1,106 @@
+{% extends "layout.html" %}
+
+{% block head %}
+    <style>
+        #box
+        {
+            padding: 50px;
+            border: 1px solid white;
+            background-color: black;
+            color: white;
+            border-radius: 20px;
+            text-align: left;
+            position: relative;
+            margin: auto;
+            width: 100%;
+            min-height: 40%;
+            opacity: 85%;
+        }
+        #bg
+        {
+          position: fixed;
+          top: 75px;
+          left: 0;
+
+          /* Preserve aspet ratio */
+          min-width: 100%;
+          min-height: 100%;
+        }
+        hr
+        {
+            background-color: white;
+        }
+        h1
+        {
+            text-align: center;
+            font-family: Georgia;
+            font-size: 50px;
+        }
+        #link
+        {
+            text-align: right;
+        }
+        #l:hover
+        {
+            color: pink;
+        }
+        #w:hover
+        {
+            color: #33ff33;
+        }
+        #a:hover
+        {
+            color: #00ffff;
+        }
+    </style>
+{% endblock %}
+
+{% block title %}
+    {{ title }}
+{% endblock %}
+
+{% block main %}
+    <img src="/static/koyaanisqatsi_1.jpg" id="bg" alt="Koyaanisqatsi &#169; Institute for Regional Education">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible alert-primary border fade show" role="alert">
+                    <span>{{ message }}</span>
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                    </button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    <div id="box">
+        <h1>{{ title }}</h1>
+        <hr>
+        <h3>Release year: <b>{{ year }}</b></h3>
+        <br>
+        <h4>
+            {% if directors|length == 1 %}
+                Director: <b>{{ directors[0] }}</b>
+            {% else %}
+                Directors: {% for i in range(0,directors|length-1) %}<b>{{ directors[i] }}, {% endfor %}{{ directors[-1] }}</b>
+            {% endif %}
+        </h4>
+        <br>
+        {% if vote != 1 %}
+            <h5>Rating: <b>{{ rating }}</b> ({{ vote|usd }} votes)</h5>
+        {% else %}
+            <h5>Rating: <b>{{ rating }}</b> ({{ vote|usd }} vote)</h5>
+        {% endif %}
+        <br>
+        <form action="/search" method="post">
+            <input type="submit" name="trailer" value="Watch Trailer >" class="btn btn-primary btn-lg"/>
+        </form>
+        <div id="link">
+            <form action="/search" method="post">
+                <input type="submit" name="watched" value="Watched" class="btn btn-success"/>
+                &ensp;
+                <input type="submit" name="watchlist" value="Add to Watchlist" class="btn btn-info"/>
+            </form>
+        </div>
+    </div>
+{% endblock %}

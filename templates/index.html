@@ -1,0 +1,51 @@
+{% extends "layout.html" %}
+
+{% block head %}
+    <script>
+        window.history.pushState('', null, './');
+        $(window).on('popstate', function() {
+           location.reload(true);
+        });
+    </script>
+
+    <style>
+        #bg
+        {
+          position: fixed;
+          top: 75px;
+          left: 0;
+
+          /* Preserve aspet ratio */
+          min-width: 100%;
+          min-height: 100%;
+        }
+        #content
+        {
+            position: absolute;
+        }
+        h1
+        {
+            font-size: 70px;
+            font-weight: bold;
+        }
+    </style>
+{% endblock %}
+
+{% block title %}
+    Index
+{% endblock %}
+
+{% block main %}
+    <!-- Main page content -->
+    <img src="static/film_reel.jpg" id="bg" alt="Film Reel">
+    <div id="content">
+    <h1><span style="color:#537fbe">M</span><span style="color:#ea433b">o</span><span style="color:#f5b82e">v</span><span style="color:#ea433b">i</span><span style="color:#2e944b">e</span><span style="color:#537fbe">s</span><span style="color:#f5b82e"> <span style="color:#2e944b">s</span><span style="color:#ea433b">e</span><span style="color:#f5b82e">a</span><span style="color:#537fbe">r</span><span style="color:#2e944b">c</span><span style="color:#f5b82e">h</span></h1>
+    <form action="/search" method="post">
+        <div class="form-group">
+            <input class="form-control" name="search" placeholder="Movie name" type="text" autofocus>
+            <input class="form-control" name="year" placeholder="Year (optional)" type="number" min="1888" autocomplete="off">
+        </div>
+        <button class="btn btn-primary btn-lg" type="submit">Search</button>
+    </form>
+    </div>
+{% endblock %}

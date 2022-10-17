@@ -1,0 +1,93 @@
+{% extends "layout.html" %}
+
+{% block head %}
+    <style>
+        #box
+        {
+            padding: 50px;
+            border: 1px solid white;
+            background-color: black;
+            color: white;
+            border-radius: 20px;
+            text-align: left;
+            position: relative;
+            margin: auto;
+            width: 100%;
+            min-height: 40%;
+            opacity: 85%;
+        }
+        #bg
+        {
+          position: fixed;
+          top: 75px;
+          left: 0;
+
+          /* Preserve aspect ratio */
+          min-width: 100%;
+          min-height: 100%;
+        }
+        hr
+        {
+            background-color: white;
+        }
+        h1
+        {
+            text-align: center;
+            font-family: Georgia;
+            font-size: 50px;
+        }
+        b
+        {
+            font-size: 25px;
+        }
+        i
+        {
+            font-size: 20px;
+        }
+        #birth
+        {
+            font-size: 20px;
+            font-family: Verdana;
+        }
+    </style>
+{% endblock %}
+
+{% block title %}
+    {{ title }}
+{% endblock %}
+
+{% block main %}
+    <img src="/static/koyaanisqatsi_2.jpg" id="bg" alt="Koyaanisqatsi &#169; Institute for Regional Education">
+    <div id="box">
+        <h1>{{ title }}</h1>
+        <hr>
+            {% if stars|length == 0 %}
+                <h4><u>Stars</u> :</h4>
+                <i>&ensp;Information not available</i>
+            {% elif stars|length == 1 %}
+                <h4><u>Star</u> :</h4>
+                <b>{{ stars[0] }}</b> <span id="birth">(born {{ s_birth[0] }})</span>
+            {% else %}
+                <h4><u>Stars</u> :</h4>
+                <ul>
+                {% for i in range(0,stars|length) %}
+                    <li><b>{{ stars[i] }}</b>{% if s_birth[i] != '' %} <span id="birth">(born {{ s_birth[i] }})</span>{% endif %}</li>
+                {% endfor %}
+                </ul>
+            {% endif %}
+            {% if directors|length == 0 %}
+                <h4><u>Directors</u> :</h4>
+                <i>&ensp;Information not available</i>
+            {% elif directors|length == 1 %}
+                <h4><u>Director</u> :</h4>
+                &emsp;&emsp;<b>{{ directors[0] }}</b> <span id="birth">(born {{ d_birth[0] }})</span>
+            {% else %}
+                <h4><u>Directors</u> :</h4>
+                <ul>
+                {% for i in range(0,directors|length) %}
+                    <li><b>{{ directors[i] }}</b>{% if d_birth[i] != '' %} <span id="birth">(born {{ d_birth[i] }})</span>{% endif %}</li>
+                {% endfor %}
+                </ul>
+            {% endif %}
+    </div>
+{% endblock %}

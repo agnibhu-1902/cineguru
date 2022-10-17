@@ -1,0 +1,90 @@
+{% extends "layout.html" %}
+
+{% block head %}
+    <style>
+        #box
+        {
+            padding: 50px;
+            border: 1px solid white;
+            background-color: black;
+            color: white;
+            border-radius: 20px;
+            text-align: left;
+            position: relative;
+            margin: auto;
+            width: 100%;
+            min-height: 40%;
+            opacity: 85%;
+        }
+        #bg
+        {
+          position: fixed;
+          top: 75px;
+          left: 0;
+
+          /* Preserve aspet ratio */
+          min-width: 100%;
+          min-height: 100%;
+        }
+        hr
+        {
+            background-color: white;
+        }
+        h1
+        {
+            text-align: center;
+            font-family: Georgia;
+            font-size: 50px;
+        }
+        #rev
+        {
+            width: 100%;
+        }
+        table
+        {
+            border-radius: 5px;
+        }
+    </style>
+{% endblock %}
+
+{% block title %}
+    My Watchlist
+{% endblock %}
+
+{% block main %}
+    <img src="/static/koyaanisqatsi_5.jpg" id="bg" alt="Koyaanisqatsi &#169; Institute for Regional Education">
+    <div id="box">
+        <h1>My Watchlist</h1>
+        <hr>
+        <table class="table table-dark">
+        <thead>
+            <tr>
+                <th>Serial No.</th>
+                <th>Title</th>
+                <th>Year</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if watchlist|length == 0 %}
+                <tr>
+                    <td colspan="3" class="text-center text-muted" style="font-family: Sans Serif;"><i>--- No data found ---</i></td>
+                </tr>
+            {% else %}
+                {% for row in watchlist %}
+                        <tr>
+                            <td>
+                                {{ loop.index }}
+                            </td>
+                            <td>
+                                {{ row.title }}
+                            </td>
+                            <td>
+                                {{ row.year }}
+                            </td>
+                        </tr>
+                {% endfor %}
+            {% endif %}
+        </tbody>
+    </table>
+    </div>
+{% endblock %}

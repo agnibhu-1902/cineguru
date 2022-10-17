@@ -1,0 +1,113 @@
+{% extends "layout.html" %}
+
+{% block head %}
+    <style>
+        #box
+        {
+            padding: 50px;
+            border: 1px solid white;
+            background-color: black;
+            color: white;
+            border-radius: 20px;
+            text-align: left;
+            position: relative;
+            margin: auto;
+            width: 100%;
+            min-height: 40%;
+            opacity: 85%;
+        }
+        #bg
+        {
+          position: fixed;
+          top: 75px;
+          left: 0;
+
+          /* Preserve aspet ratio */
+          min-width: 100%;
+          min-height: 100%;
+        }
+        hr
+        {
+            background-color: white;
+        }
+        h1
+        {
+            text-align: center;
+            font-family: Georgia;
+            font-size: 50px;
+        }
+        #rev
+        {
+            font-family: Futura, "Trebuchet MS", Arial, sans-serif;
+            text-align: center;
+            line-height: 20px;
+        }
+        table
+        {
+            border-radius: 5px;
+        }
+        label
+        {
+            width: 100%
+        }
+        #in
+        {
+            width: 55%;
+        }
+    </style>
+{% endblock %}
+
+{% block title %}
+    Add Movie
+{% endblock %}
+
+{% block main %}
+    <img src="/static/koyaanisqatsi_6.jpg" id="bg" alt="Koyaanisqatsi &#169; Institute for Regional Education">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible alert-primary border fade show" role="alert">
+                    <span>{{ message }}</span>
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                    </button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    <div id="box">
+        <h1>Add Movie to Database</h1>
+        <hr>
+        <h4><i>Here you can add movies that are not present in our database. Feel free to contribute!</i></h4>
+        <br><br>
+        <form id="rev" action="/add" method="post">
+            <div class="form-group">
+                <label for="title">Movie name :</label>
+                <input class="form-control" id="in" name="title" placeholder="Type here" type="text" autocomplete="off" autofocus/>
+                <br><br>
+                <label for="year">Movie release year :</label>
+                <input class="form-control" id="in" name="year" placeholder="Type here" type="number" min="1888" autocomplete="off"/>
+                <br><br>
+                <label for="director">Director(s) :</label>
+                <input class="form-control" id="in" name="director" placeholder="Use comma separated values (Eg. Joel Coen, Ethan Coen)" type="text" autocomplete="off"/>
+                <br><br>
+                <label for="bdir">Director&#39;s birth year(s) :</label>
+                <input class="form-control" id="in" name="bdir" placeholder="Use comma separated values (Eg. 1954, 1957)" type="text" autocomplete="off"/>
+                <br><br>
+                <label for="stars">Stars :</label>
+                <input class="form-control" id="in" name="stars" placeholder="Use comma separated values (Eg. Robert de Niro, Jodie Foster)" type="text" autocomplete="off"/>
+                <br><br>
+                <label for="bstar">Stars&#39; birth years :</label>
+                <input class="form-control" id="in" name="bstar" placeholder="Use comma separated values (Eg. 1943, 1962)" type="text" autocomplete="off"/>
+                <br><br>
+                <label for="rating">IMDb rating :</label>
+                <input class="form-control" id="in" name="rating" placeholder="Type here" type="number" step=".1" min="0.0" max="10.0" autocomplete="off"/>
+                <br><br>
+                <label for="votes">IMDb votes :</label>
+                <input class="form-control" id="in" name="votes" placeholder="Type here" type="number" min="0" autocomplete="off"/>
+            </div>
+            <br>
+            <button class="btn btn-primary btn-lg" type="submit">Add to Database</button>
+        </form>
+    </div>
+{% endblock %}

@@ -1,0 +1,98 @@
+{% extends "layout.html" %}
+
+{% block head %}
+    <style>
+        #box
+        {
+            padding: 50px;
+            border: 1px solid white;
+            background-color: black;
+            color: white;
+            border-radius: 20px;
+            text-align: left;
+            position: relative;
+            margin: auto;
+            width: 100%;
+            min-height: 40%;
+            opacity: 85%;
+        }
+        #bg
+        {
+          position: fixed;
+          top: 75px;
+          left: 0;
+
+          /* Preserve aspet ratio */
+          min-width: 100%;
+          min-height: 100%;
+        }
+        hr
+        {
+            background-color: white;
+        }
+        h1
+        {
+            text-align: center;
+            font-family: Georgia;
+            font-size: 50px;
+        }
+        #rev
+        {
+            width: 100%;
+        }
+        table
+        {
+            border-radius: 5px;
+        }
+    </style>
+{% endblock %}
+
+{% block title %}
+    {{ title }}
+{% endblock %}
+
+{% block main %}
+    <img src="/static/koyaanisqatsi_3.jpg" id="bg" alt="Koyaanisqatsi &#169; Institute for Regional Education">
+    <div id="box">
+        <h1>{{ title }}</h1>
+        <hr>
+        <h4><i>Write a review :</i></h4>
+        <form action="/reviews" method="post">
+            <div class="form-group">
+                <input class="form-control" id="rev" name="review" placeholder="Type your text here" type="text" autocomplete="off">
+            </div>
+            <button class="btn btn-primary" type="submit">Submit</button>
+        </form>
+        <br><br>
+        <h3 style="font-family:Helvetica;"><u>Reviews</u> :</h3>
+        <table class="table table-dark">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Review</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% set rev = {'flag':False} %}
+            {% for row in reviews %}
+                {% if row.movie == title %}
+                    {% if rev.update({'flag':True}) %}{% endif %}
+                    <tr>
+                        <td>
+                            {{ row.username }}
+                        </td>
+                        <td>
+                            {{ row.review }}
+                        </td>
+                    </tr>
+                {% endif %}
+            {% endfor %}
+            {% if rev.flag == False %}
+                <tr>
+                    <td colspan="2" class="text-center" style="font-family: Sans Serif;"><i>--- No Reviews Yet ---</i></td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+    </div>
+{% endblock %}
