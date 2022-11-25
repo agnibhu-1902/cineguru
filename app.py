@@ -48,7 +48,7 @@ def index():
     if request.method == "POST":
         return redirect("/search")
     else:
-        return render_template("index.html")
+        return render_template("index.html", isIndex = True)
 
 
 @app.route("/search", methods=["GET", "POST"])
@@ -122,7 +122,7 @@ def search():
         with open("mov_info.csv") as file:
             reader = csv.DictReader(file)
             for row in reader:
-                return render_template("result.html", title=row["title"], year=row["year"], rating=row["rating"], vote=int(row["vote"]), directors=row["directors"].replace("'", "").strip('][').split(', '))
+                return render_template("result.html", title=row["title"], year=row["year"], rating=row["rating"], vote=int(row["vote"]), directors=row["directors"].replace("'", "").strip('][').split(', '), isIndex = True)
 
 
 @app.route("/cast")
@@ -145,7 +145,7 @@ def cast():
                 name = db.execute("SELECT name, birth FROM people WHERE id = ?", person["person_id"])
                 directors.append(name[0]["name"])
                 d_birth.append(name[0]["birth"])
-            return render_template("cast.html", title=row["title"], stars=stars, s_birth=s_birth, directors=directors, d_birth=d_birth)
+            return render_template("cast.html", title=row["title"], stars=stars, s_birth=s_birth, directors=directors, d_birth=d_birth, isIndex = True)
 
 
 @app.route("/reviews", methods=["GET", "POST"])
@@ -168,7 +168,7 @@ def reviews():
         with open("mov_info.csv") as file:
             reader = csv.DictReader(file)
             for row in reader:
-                return render_template("reviews.html", title=row["title"], reviews=reviews)
+                return render_template("reviews.html", title=row["title"], reviews=reviews, isIndex = True)
 
 
 @app.route("/watched")
@@ -176,7 +176,7 @@ def reviews():
 def watched():
     # Display the "Watched Movies" list
     watched = db.execute("SELECT title, year FROM watched WHERE id = :user_id", user_id=session["user_id"])
-    return render_template("watched.html", watched=watched)
+    return render_template("watched.html", watched=watched, isIndex = True)
 
 
 @app.route("/watchlist")
@@ -184,7 +184,7 @@ def watched():
 def watchlist():
     # Display the watchlist
     watchlist = db.execute("SELECT title, year FROM watchlist WHERE id = :user_id", user_id=session["user_id"])
-    return render_template("watchlist.html", watchlist=watchlist)
+    return render_template("watchlist.html", watchlist=watchlist, isIndex = True)
 
 
 @app.route("/add", methods=["GET", "POST"])
@@ -268,7 +268,7 @@ def add():
             flash(f"{title} has been successfully added to the database")
         return redirect("/add", code=303)
     else:
-        return render_template("add.html")
+        return render_template("add.html", isIndex = True)
 
 
 @app.route("/password", methods=["GET", "POST"])
@@ -315,7 +315,7 @@ def password():
 
     # User reached route via GET (as by clicking a link or via redirect)
     else:
-        return render_template("password.html")
+        return render_template("password.html", isIndex = True)
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -351,7 +351,7 @@ def login():
 
     # User reached route via GET (as by clicking a link or via redirect)
     else:
-        return render_template("login.html")
+        return render_template("login.html", isIndex = True)
 
 
 @app.route("/logout")
@@ -400,7 +400,7 @@ def register():
 
     # User reached route via GET (as by clicking a link or via redirect)
     else:
-        return render_template("register.html")
+        return render_template("register.html", isIndex = True)
 
 
 def errorhandler(e):
@@ -413,6 +413,3 @@ def errorhandler(e):
 # Listen for errors
 for code in default_exceptions:
     app.errorhandler(code)(errorhandler)
-
-if __name__ == "__main__":
-    app.run(debug = False, host = '0.0.0.0')
