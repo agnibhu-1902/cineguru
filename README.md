@@ -1,5 +1,5 @@
 # CineGuru
-#### Website Link: https://cineguru-production.up.railway.app/login
+#### Website Link: https://cineguru-production.up.railway.app
 #### Video Demo:  https://youtu.be/qET2LxIOAdY
 #### Description:
 CineGuru is a movie database web application where you can search for movies, write reviews, add to your watchlist and more.
