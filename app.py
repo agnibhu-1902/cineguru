@@ -1,6 +1,7 @@
 import os
 import csv
 import time
+import logging
 
 from cs50 import SQL
 from flask import Flask, flash, redirect, render_template, request, session
@@ -9,15 +10,28 @@ from tempfile import mkdtemp
 from werkzeug.exceptions import default_exceptions, HTTPException, InternalServerError
 from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime
+from logging.handlers import RotatingFileHandler
 
 from helpers import apology, login_required, usd
 
 # Configure application
 app = Flask(__name__)
 
+# Configure logger
+class RequestFormatter(logging.Formatter):
+    def format(self, record):
+        record.ip = request.remote_addr if request else 'N/A'
+        return super().format(record)
+
+if not app.debug:
+    handler = RotatingFileHandler('app.log', maxBytes=10000, backupCount=3)
+    handler.setLevel(logging.INFO)
+    formatter = RequestFormatter('%(asctime)s - %(name)s - %(levelname)s - %(ip)s - %(message)s')
+    handler.setFormatter(formatter)
+    app.logger.addHandler(handler)
+
 # Ensure templates are auto-reloaded
 app.config["TEMPLATES_AUTO_RELOAD"] = True
-
 
 # Ensure responses aren't cached
 @app.after_request
@@ -41,13 +55,13 @@ Session(app)
 db = SQL("sqlite:///movies.db")
 
 
-
 @app.route("/", methods=["GET", "POST"])
 @login_required
 def index():
     if request.method == "POST":
         return redirect("/search")
     else:
+        app.logger.info('Accessed index.html')
         return render_template("index.html", isIndex = True)
 
 
@@ -63,12 +77,14 @@ def search():
                     movies = db.execute("SELECT * FROM watched WHERE title = ? AND id = ?", row["title"], session["user_id"])
                     if len(movies) == 0:
                         db.execute("INSERT INTO watched (id, title, year) VALUES(?, ?, ?)", session["user_id"], row["title"], row["year"])
+                        app.logger.info('Added to watched movies list')
                         flash(f"{row['title']} has been successfully added to your \"Watched Movies\" list")
                     else:
                         flash(f"{row['title']} is already present in your \"Watched Movies\" list")
                     movies = db.execute("SELECT * FROM watchlist WHERE title = ? AND id = ?", row["title"], session["user_id"])
                     if len(movies) != 0:
                         db.execute("DELETE FROM watchlist WHERE title = ? AND year = ?", row["title"], row["year"]) # Delete from watchlist
+                        app.logger.info('Deleted from watchlist')
         elif "watchlist" in request.form:
             # Add movie to watchlist
             with open("mov_info.csv") as file:
@@ -77,12 +93,14 @@ def search():
                     movies = db.execute("SELECT * FROM watchlist WHERE title = ? AND id = ?", row["title"], session["user_id"])
                     if len(movies) == 0:
                         db.execute("INSERT INTO watchlist (id, title, year) VALUES(?, ?, ?)", session["user_id"], row["title"], row["year"])
+                        app.logger.info('Added to watchlist')
                         flash(f"{row['title']} has been successfully added to your watchlist")
                     else:
                         flash(f"{row['title']} is already present in your watchlist")
                     movies = db.execute("SELECT * FROM watched WHERE title = ? AND id = ?", row["title"], session["user_id"])
                     if len(movies) != 0:
                         db.execute("DELETE FROM watched WHERE title = ? AND year = ?", row["title"], row["year"]) # Delete from "Watched Movies" list
+                        app.logger.info('Deleted from watched movies list')
         elif "trailer" in request.form:
             with open("mov_info.csv") as file:
                 reader = csv.DictReader(file)
@@ -92,6 +110,7 @@ def search():
                     for i in range(len(words) - 1):
                         s += words[i] + '+'
                     s += words[-1]
+                    app.logger.info('Requested trailer')
                     return redirect(f"https://www.youtube.com/results?search_query={s}+{row['year']}+trailer") # Send a get request to YouTube
         else:
             # Search for the movie in the database
@@ -100,6 +119,7 @@ def search():
             else:
                 movies = db.execute("SELECT * FROM movies WHERE title LIKE ? AND year = ?", request.form.get("search"), request.form.get("year"))
             if len(movies) == 0:
+                app.logger.error('Cannot find movie')
                 return apology("movie not found", 404) # When movie is not present in the database
             mov_id, title, year = movies[0]["id"], movies[0]["title"], movies[0]["year"]
             rating = db.execute("SELECT rating, votes FROM ratings WHERE movie_id = ?", mov_id)
@@ -115,13 +135,17 @@ def search():
                 writer.writerow([title, year, rating[0]["rating"], rating[0]["votes"], directors])
             if "watched" in request.form:
                 db.execute("INSERT INTO watched (id, title) VALUES(?, ?)", session["user_id"], title)
+                app.logger.info('Added to watched movies list')
             elif "watchlist" in request.form:
                 db.execute("INSERT INTO watchlist (id, title) VALUES(?, ?)", session["user_id"], title)
+                app.logger.info('Added to watchlist')
         return redirect("/search", code=303)
     else:
         with open("mov_info.csv") as file:
             reader = csv.DictReader(file)
             for row in reader:
+                app.logger.info('Searched movie')
+                app.logger.info('Accessed result.html')
                 return render_template("result.html", title=row["title"], year=row["year"], rating=row["rating"], vote=int(row["vote"]), directors=row["directors"].replace("'", "").strip('][').split(', '), isIndex = True)
 
 
@@ -145,6 +169,7 @@ def cast():
                 name = db.execute("SELECT name, birth FROM people WHERE id = ?", person["person_id"])
                 directors.append(name[0]["name"])
                 d_birth.append(name[0]["birth"])
+            app.logger.info('Accessed cast.html')
             return render_template("cast.html", title=row["title"], stars=stars, s_birth=s_birth, directors=directors, d_birth=d_birth, isIndex = True)
 
 
@@ -154,6 +179,7 @@ def reviews():
     # Display the reviews of the movie
     if request.method == "POST":
         if request.form.get("review") == "":
+            app.logger.error('Review field empty')
             return apology("Input Field is empty", 403)
         else:
             uname = db.execute("SELECT username FROM users WHERE id = :user_id", user_id=session["user_id"])
@@ -161,6 +187,7 @@ def reviews():
                 reader = csv.DictReader(file)
                 for row in reader:
                     db.execute("INSERT INTO reviews (id, username, movie, review) VALUES(?, ?, ?, ?)", session["user_id"], uname[0]["username"], row["title"], request.form.get("review"))
+                    app.logger.info('Added review')
                     break
         return redirect("/reviews", code=303)
     else:
@@ -168,6 +195,7 @@ def reviews():
         with open("mov_info.csv") as file:
             reader = csv.DictReader(file)
             for row in reader:
+                app.logger.info('Accessed reviews.html')
                 return render_template("reviews.html", title=row["title"], reviews=reviews, isIndex = True)
 
 
@@ -176,6 +204,7 @@ def reviews():
 def watched():
     # Display the "Watched Movies" list
     watched = db.execute("SELECT title, year FROM watched WHERE id = :user_id", user_id=session["user_id"])
+    app.logger.info('Accessed watched.html')
     return render_template("watched.html", watched=watched, isIndex = True)
 
 
@@ -184,6 +213,7 @@ def watched():
 def watchlist():
     # Display the watchlist
     watchlist = db.execute("SELECT title, year FROM watchlist WHERE id = :user_id", user_id=session["user_id"])
+    app.logger.info('Accessed watchlist.html')
     return render_template("watchlist.html", watchlist=watchlist, isIndex = True)
 
 
@@ -207,67 +237,70 @@ def add():
                     break
         # Check for errors in user input
         if flag:
-            return apology("only numbers allowed in year fields", 400)
+            flash("only numbers allowed in year fields")
         elif request.form.get("title") == '' or request.form.get("year") == '' or request.form.get("director") == '' or request.form.get("bdir") == '' or request.form.get("stars") == '' or request.form.get("bstar") == '' or request.form.get("rating") == '' or request.form.get("votes") == '':
-            return apology("please fill in all fields", 400)
+            flash("please fill in all fields")
         elif len(request.form.get("director").split(',')) != len(request.form.get("bdir").split(',')):
-            return apology("director name and year fields don't match", 400)
+            flash("director name and year fields don't match")
         elif len(request.form.get("stars").split(',')) != len(request.form.get("bstar").split(',')):
-            return apology("star name and year fields don't match", 400)
-        title, year = request.form.get("title"), request.form.get("year")
-        movie = db.execute("SELECT * FROM movies WHERE title LIKE ? and year = ?", title, year)
-        if len(movie) != 0:
-            flash(f"{title} is already present in the database") # Check if movie is already present in the database
+            flash("star name and year fields don't match")
         else:
-            # Add to database
-            db.execute("INSERT INTO movies (title, year) VALUES(?, ?)", title, year)
-            movie = db.execute("SELECT id FROM movies WHERE title = ? AND year = ?", title, year)
-            db.execute("INSERT INTO ratings (movie_id, rating, votes) VALUES(?, ?, ?)", movie[0]["id"], request.form.get("rating"), request.form.get("votes"))
-            if ',' in request.form.get("director"):
-                director = request.form.get("director").split(',')
-                year = request.form.get("bdir").split(',')
-                for i in range(len(director)):
-                    search = db.execute("SELECT * FROM people WHERE name LIKE ? AND birth = ?", director[i].strip(), year[i].strip())
+            title, year = request.form.get("title"), request.form.get("year")
+            movie = db.execute("SELECT * FROM movies WHERE title LIKE ? and year = ?", title, year)
+            if len(movie) != 0:
+                flash(f"{title} is already present in the database") # Check if movie is already present in the database
+            else:
+                # Add to database
+                db.execute("INSERT INTO movies (title, year) VALUES(?, ?)", title, year)
+                movie = db.execute("SELECT id FROM movies WHERE title = ? AND year = ?", title, year)
+                db.execute("INSERT INTO ratings (movie_id, rating, votes) VALUES(?, ?, ?)", movie[0]["id"], request.form.get("rating"), request.form.get("votes"))
+                if ',' in request.form.get("director"):
+                    director = request.form.get("director").split(',')
+                    year = request.form.get("bdir").split(',')
+                    for i in range(len(director)):
+                        search = db.execute("SELECT * FROM people WHERE name LIKE ? AND birth = ?", director[i].strip(), year[i].strip())
+                        if len(search) != 0:
+                            db.execute("INSERT INTO directors (movie_id, person_id) VALUES(?, ?)", movie[0]["id"], search[0]["id"])
+                        else:
+                            db.execute("INSERT INTO people (name, birth) VALUES(?, ?)", director[i].strip(), year[i].strip())
+                            search = db.execute("SELECT id FROM people WHERE name LIKE ? AND birth = ?", director[i].strip(), year[i].strip())
+                            db.execute("INSERT INTO directors (movie_id, person_id) VALUES(?, ?)", movie[0]["id"], search[0]["id"])
+                else:
+                    director, bdir = request.form.get("director").strip(), request.form.get("bdir").strip()
+                    search = db.execute("SELECT * FROM people WHERE name LIKE ? AND birth = ?", director, bdir)
                     if len(search) != 0:
                         db.execute("INSERT INTO directors (movie_id, person_id) VALUES(?, ?)", movie[0]["id"], search[0]["id"])
                     else:
-                        db.execute("INSERT INTO people (name, birth) VALUES(?, ?)", director[i].strip(), year[i].strip())
-                        search = db.execute("SELECT id FROM people WHERE name LIKE ? AND birth = ?", director[i].strip(), year[i].strip())
+                        db.execute("INSERT INTO people (name, birth) VALUES(?, ?)", director, bdir)
+                        search = db.execute("SELECT id FROM people WHERE name LIKE ? AND birth = ?", director, bdir)
                         db.execute("INSERT INTO directors (movie_id, person_id) VALUES(?, ?)", movie[0]["id"], search[0]["id"])
-            else:
-                director, bdir = request.form.get("director").strip(), request.form.get("bdir").strip()
-                search = db.execute("SELECT * FROM people WHERE name LIKE ? AND birth = ?", director, bdir)
-                if len(search) != 0:
-                    db.execute("INSERT INTO directors (movie_id, person_id) VALUES(?, ?)", movie[0]["id"], search[0]["id"])
+                if ',' in request.form.get("stars"):
+                    stars = request.form.get("stars").split(',')
+                    year = request.form.get("bstar").split(',')
+                    # print(stars)
+                    # print(year)
+                    for i in range(len(stars)):
+                        search = db.execute("SELECT * FROM people WHERE name LIKE ? AND birth = ?", stars[i].strip(), year[i].strip())
+                        if len(search) != 0:
+                            db.execute("INSERT INTO stars (movie_id, person_id) VALUES(?, ?)", movie[0]["id"], search[0]["id"])
+                        else:
+                            db.execute("INSERT INTO people (name, birth) VALUES(?, ?)", stars[i].strip(), year[i].strip())
+                            search = db.execute("SELECT id FROM people WHERE name LIKE ? AND birth = ?", stars[i].strip(), year[i].strip())
+                            db.execute("INSERT INTO stars (movie_id, person_id) VALUES(?, ?)", movie[0]["id"], search[0]["id"])
                 else:
-                    db.execute("INSERT INTO people (name, birth) VALUES(?, ?)", director, bdir)
-                    search = db.execute("SELECT id FROM people WHERE name LIKE ? AND birth = ?", director, bdir)
-                    db.execute("INSERT INTO directors (movie_id, person_id) VALUES(?, ?)", movie[0]["id"], search[0]["id"])
-            if ',' in request.form.get("stars"):
-                stars = request.form.get("stars").split(',')
-                year = request.form.get("bstar").split(',')
-                print(stars)
-                print(year)
-                for i in range(len(stars)):
-                    search = db.execute("SELECT * FROM people WHERE name LIKE ? AND birth = ?", stars[i].strip(), year[i].strip())
+                    star, bstar = request.form.get("stars").strip(), request.form.get("bstar").strip()
+                    search = db.execute("SELECT * FROM people WHERE name LIKE ? AND birth = ?", star, bstar)
                     if len(search) != 0:
                         db.execute("INSERT INTO stars (movie_id, person_id) VALUES(?, ?)", movie[0]["id"], search[0]["id"])
                     else:
-                        db.execute("INSERT INTO people (name, birth) VALUES(?, ?)", stars[i].strip(), year[i].strip())
-                        search = db.execute("SELECT id FROM people WHERE name LIKE ? AND birth = ?", stars[i].strip(), year[i].strip())
+                        db.execute("INSERT INTO people (name, birth) VALUES(?, ?)", star, bstar)
+                        search = db.execute("SELECT id FROM people WHERE name LIKE ? AND birth = ?", star, bstar)
                         db.execute("INSERT INTO stars (movie_id, person_id) VALUES(?, ?)", movie[0]["id"], search[0]["id"])
-            else:
-                star, bstar = request.form.get("stars").strip(), request.form.get("bstar").strip()
-                search = db.execute("SELECT * FROM people WHERE name LIKE ? AND birth = ?", star, bstar)
-                if len(search) != 0:
-                    db.execute("INSERT INTO stars (movie_id, person_id) VALUES(?, ?)", movie[0]["id"], search[0]["id"])
-                else:
-                    db.execute("INSERT INTO people (name, birth) VALUES(?, ?)", star, bstar)
-                    search = db.execute("SELECT id FROM people WHERE name LIKE ? AND birth = ?", star, bstar)
-                    db.execute("INSERT INTO stars (movie_id, person_id) VALUES(?, ?)", movie[0]["id"], search[0]["id"])
-            flash(f"{title} has been successfully added to the database")
+                app.logger.info('Added movie to database')
+                flash(f"{title} has been successfully added to the database")
         return redirect("/add", code=303)
     else:
+        app.logger.info('Accessed add.html')
         return render_template("add.html", isIndex = True)
 
 
@@ -280,18 +313,22 @@ def password():
 
         # Ensure username was submitted
         if not request.form.get("username"):
+            app.logger.error('Did not provide username')
             return apology("must provide username", 400)
 
         # Ensure password was submitted
         elif not request.form.get("old_password"):
+            app.logger.error('Did not provide password')
             return apology("must provide password", 400)
 
         # Ensure password was submitted
         elif not request.form.get("new_password"):
+            app.logger.error('Did not provide password')
             return apology("must provide password", 400)
 
         # Ensure password was submitted
         elif not request.form.get("confirmation"):
+            app.logger.error('Did not provide password')
             return apology("must provide password", 400)
 
         # Query database for username
@@ -299,22 +336,26 @@ def password():
 
         # Ensure username exists and password is correct
         if len(rows) != 1 or not check_password_hash(rows[0]["hash"], request.form.get("old_password")):
+            app.logger.error('Invalid username/password')
             return apology("invalid username and/or password", 400)
 
         # Ensure passwords match
         elif request.form.get("new_password") != request.form.get("confirmation"):
+            app.logger.error('Failed to match password')
             return apology("passwords don't match", 400)
 
         # Change user's password
         username = request.form.get("username")
         password = request.form.get("new_password")
         db.execute("UPDATE users SET hash = ? WHERE username = ?", generate_password_hash(password), username)
+        app.logger.info('Changed password')
 
         # Redirect user to login page
         return redirect("/login")
 
     # User reached route via GET (as by clicking a link or via redirect)
     else:
+        app.logger.info('Accessed password.html')
         return render_template("password.html", isIndex = True)
 
 
@@ -330,10 +371,12 @@ def login():
 
         # Ensure username was submitted
         if not request.form.get("username"):
+            app.logger.error('Did not provide username')
             return apology("must provide username", 403)
 
         # Ensure password was submitted
         elif not request.form.get("password"):
+            app.logger.error('Did not provide password')
             return apology("must provide password", 403)
 
         # Query database for username
@@ -341,16 +384,19 @@ def login():
 
         # Ensure username exists and password is correct
         if len(rows) != 1 or not check_password_hash(rows[0]["hash"], request.form.get("password")):
+            app.logger.error('Entered invalid username/password')
             return apology("invalid username and/or password", 403)
 
         # Remember which user has logged in
         session["user_id"] = rows[0]["id"]
 
+        app.logger.info('Logged in')
         # Redirect user to home page
         return redirect("/")
 
     # User reached route via GET (as by clicking a link or via redirect)
     else:
+        app.logger.info('Accessed login page')
         return render_template("login.html", isIndex = True)
 
 
@@ -362,6 +408,7 @@ def logout():
     session.clear()
 
     # Redirect user to login form
+    app.logger.info('Logged out')
     return redirect("/")
 
 
@@ -374,32 +421,37 @@ def register():
 
         # Ensure username was submitted
         if not request.form.get("username"):
+            app.logger.error('Did not provide username')
             return apology("must provide username", 400)
 
         # Ensure password was submitted
         elif not request.form.get("password"):
+            app.logger.error('Did not provide password')
             return apology("must provide password", 400)
 
         # Ensure passwords match
         elif request.form.get("password") != request.form.get("confirmation"):
+            app.logger.error('Failed to confirm password')
             return apology("passwords don't match", 400)
 
         # Ensure username is not taken
         else:
             rows = db.execute("SELECT * FROM users WHERE username = ?", request.form.get("username"))
             if len(rows) != 0:
+                app.logger.error('Issued a duplicate username')
                 return apology("username already taken", 400)
 
         # Add user to database
         username = request.form.get("username")
         password = request.form.get("password")
         db.execute("INSERT INTO users (username, hash) VALUES(?, ?)", username, generate_password_hash(password))
-
+        app.logger.info('Registered user')
         # Redirect user to login page
         return redirect("/login")
 
     # User reached route via GET (as by clicking a link or via redirect)
     else:
+        app.logger.info('Accessed register.html')
         return render_template("register.html", isIndex = True)
 
 
